@@ -82,3 +82,16 @@
     (when game
       (vote-for game)))
   (redirect "/retro-games"))
+
+(define-easy-handler (new-game :uri "/new-game") ()
+  (standard-page (:title "Add a new game")
+    (:h1 "Add a new game to the chart")
+    (:form :action "/game-added" :method "post" :id "addform"
+           (:p "What is the name of the game?" (:br)
+               (:input :type "text" :name "name" :class "txt"))
+           (:p (:input :type "submit" :value "Add" :class "btn")))))
+
+(define-easy-handler (game-added :uri "/game-added") (name)
+  (unless (or (null name) (zerop (length name)))
+    (add-game name))
+  (redirect "/retro-games"))
