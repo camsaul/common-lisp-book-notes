@@ -90,3 +90,84 @@
 
 (defun inventory ()
   (cons 'items- (objects-at 'body *objects* *object-locations*)))
+
+;;; Chapter 6
+
+;; print = print a value w/ newline afterwards. print always prints
+;; objects in such a way that they can always be "read" back into
+;; their internal representation.
+
+;; prin1 = print a value with no newline
+
+;; A CHARACTER looks like #\A. #\newline, #\tab, and #\space are special literals
+
+;; Symbols are NORMALLY blind to case, but you can create a case
+;; sensitive symbol by surrounding it with pipes:
+;;
+;; |CaseSensitiveSymbol|
+;;
+;; Symbols surrounded by pipes can also contain spaces and
+;; punctuation.
+
+;; princ prints stuff in a way that is appealing to humans.
+
+;; read = reads in input
+;; read-line = reads in input as a string
+
+(defun game-read ()
+  ;; read-from-string works just like read, but reads from a string instead of the standard input
+  ;;
+  ;; concatenate concatenates strings together.
+  (let ((cmd (read-from-string
+              (concatenate 'string "(" (read-line) ")"))))
+    (flet ((quote-it (x)
+             (list 'quote x)))
+      (cons (car cmd) (mapcar #'quote-it (cdr cmd))))))
+
+(defparameter *allowed-commands* '(look walk pickup inventory))
+
+(defun game-eval (form)
+  (if (member (car form) *allowed-commands*)
+      (eval form)
+      '(i do not know that command.)))
+
+(defun tweak-text (lst caps lit)
+  (when lst
+    (let ((item (car lst))
+          (rest (cdr lst)))
+      (cond
+        ((eq item #\space)
+         (cons item (tweak-text rest caps lit)))
+
+        ((member item '(#\! #\? #\.))
+         (cons item (tweak-text rest t lit)))
+
+        ((eq item #\")
+         (tweak-text rest caps (not lit)))
+
+        (lit
+         (cons item (tweak-text rest nil lit)))
+
+        ((or caps lit)
+         (cons (char-upcase item) (tweak-text rest nil lit)))
+
+        (t
+         (cons (char-downcase item) (tweak-text rest nil nil)))))))
+
+(defun game-print (object)
+  ;; prin1-to-string = convert to a string without adding newlines/spaces
+  ;; string-trim =
+  ;; coerce = coerce an object to a type. (String to list of characters in this case)
+  (princ (coerce (tweak-text (coerce (string-trim "() " (prin1-to-string object))
+                                     'list)
+                             t
+                             nil)
+                 'string))
+  (fresh-line))
+
+(defun game-repl ()
+  (let ((cmd (game-read)))
+    (print cmd)
+    (unless (eq (car cmd) 'quit)
+      (game-print (game-eval cmd))
+      (game-repl))))
